@@ -1,0 +1,80 @@
+# Compiled class files
+*.class
+*.war
+*.ear
+
+# Eclipse specific
+.metadata/
+bin/
+tmp/
+*.tmp
+*.bak
+*.swp
+*~.nib
+local.properties
+.settings/
+.loadpath
+.project
+.classpath
+
+# Build output
+target/
+build/
+out/
+dist/
+
+# Log files
+*.log
+logs/
+
+# JavaFX SceneBuilder
+*.fxml~
+
+# External libraries - IMPORTANT!
+*.jar
+/lib/
+/libs/
+/dependencies/
+/JavaFX/  # Your JavaFX folder
+
+# IDE files
+.idea/
+*.iws
+*.iml
+*.ipr
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Package Files #
+*.zip
+*.tar.gz
+*.rar
+
+# Virtual machine crash logs
+hs_err_pid*
+
+# Database files (if you add local DB later)
+*.db
+*.sqlite
+
+# Application properties (optional - remove if you want to track configs)
+*.properties
+*.config
+
+# Maven (if you add later)
+pom.xml.tag
+pom.xml.releaseBackup
+pom.xml.versionsBackup
+pom.xml.next
+release.properties
+dependency-reduced-pom.xml
+buildNumber.properties
+.mvn/timing.properties
+.mvn/wrapper/maven-wrapper.jar
