@@ -1,81 +1,290 @@
 package models.Entities;
-
 import java.time.LocalDate;
 import java.util.*;
 
+import models.Enum.MeasurementType;
+
 public class Pantry implements Iterable<FoodItem> {
-
-    // All items; we keep this list sorted by expire date
     private final List<FoodItem> inventory = new ArrayList<>();
-
-    public Pantry() {
+    private final User owner;
+    private final Set<String> shoppingList = new HashSet<>();
+    
+    // Thresholds for auto-adding to shopping list
+    private static final int MIN_COUNT_THRESHOLD = 2;  // For COUNT items
+    private static final double MIN_QUANTITY_THRESHOLD = 0.5;  // For measured items (gallon, oz, etc)
+    
+    public Pantry(User owner) {
+        this.owner = owner;
     }
-
-    // helper: keep list sorted so UI table shows "near expire first"
-    private void sortByExpireDate() {
-        Collections.sort(inventory);  // uses FoodItem.compareTo
-    }
-
-    // Add an item; if same id already exists, just increase count
+    
+    // Add food item to pantry
     public void addFoodItem(FoodItem item) {
-        // simple merge by id (or you can merge by name if you prefer)
-        for (FoodItem f : inventory) {
-            if (f.getId() == item.getId()) {
-                f.setCount(f.getCount() + item.getCount());
-                sortByExpireDate();
-                return;
-            }
-        }
-
-        // new item
         inventory.add(item);
         sortByExpireDate();
+        checkForExpiringItems();
+        // Remove from shopping list if we just bought it
+        removeFromShoppingList(item.getFoodName());
     }
-
-    // Remove food item with given name
-    public boolean removeByName(String name) {
+    
+    // Remove food item by name
+    public boolean removeFoodItem(String foodName) {
         for (int i = 0; i < inventory.size(); i++) {
-            FoodItem item = inventory.get(i);
-            if (item.getFoodName().equalsIgnoreCase(name)) {
-                inventory.remove(i);
+            if (inventory.get(i).getFoodName().equalsIgnoreCase(foodName)) {
+                FoodItem removed = inventory.remove(i);
+                // Add to shopping list when completely removed
+                addToShoppingList(removed.getFoodName());
                 return true;
             }
         }
         return false;
     }
-
-    // Items that expire within N days (also sorted by expire date)
-    public List<FoodItem> expiringWithin(int days) {
-        LocalDate limit = LocalDate.now().plusDays(days);
-        List<FoodItem> result = new ArrayList<>();
-
+    
+    // Use/consume some quantity of food
+    public boolean useFoodItem(String foodName, double quantity) {
+        FoodItem item = findByName(foodName);
+        
+        if (item != null) {
+            item.useQuantity(quantity);
+            
+            // Check if running low or out of stock
+            if (item.isOutOfStock()) {
+                inventory.remove(item);
+                addToShoppingList(foodName);
+                
+                // Notify user item is finished
+                Notification notification = new Notification(
+                    owner.getId(),
+                    "Out of Stock!",
+                    foodName + " is finished. Added to shopping list."
+                );
+                owner.addNotification(notification);
+                
+            } else if (isRunningLow(item)) {
+                // Item is running low but not finished
+                addToShoppingList(foodName);
+                
+                // Notify user item is running low
+                Notification notification = new Notification(
+                    owner.getId(),
+                    "Running Low!",
+                    foodName + " is running low. Added to shopping list."
+                );
+                owner.addNotification(notification);
+            }
+            return true;
+        }
+        return false;
+    }
+    
+    // Check if item is running low
+    private boolean isRunningLow(FoodItem item) {
+        if (item.getMeasurementType() == MeasurementType.COUNT) {
+            return item.getCount() < MIN_COUNT_THRESHOLD;
+        } else {
+            return item.getQuantity() < MIN_QUANTITY_THRESHOLD;
+        }
+    }
+    
+    // Get all items that are running low
+    public List<FoodItem> getLowStockItems() {
+        List<FoodItem> lowStock = new ArrayList<>();
+        
         for (FoodItem item : inventory) {
-            LocalDate d = item.getExpireDate();
-            if (d != null && !d.isAfter(limit)) { // d <= limit
-                result.add(item);
+            if (isRunningLow(item)) {
+                lowStock.add(item);
             }
         }
-
-        Collections.sort(result);  // ensure ordered by expireDate
-        return result;
+        return lowStock;
     }
-
-    // All items, already sorted by expire date (copy so caller can't break it)
-    public List<FoodItem> all() {
+    
+    // Check all items and update shopping list
+    public void updateShoppingListForLowStock() {
+        for (FoodItem item : inventory) {
+            if (isRunningLow(item)) {
+                addToShoppingList(item.getFoodName());
+            }
+        }
+        
+        // Send notification if there are low stock items
+        List<FoodItem> lowStockItems = getLowStockItems();
+        if (!lowStockItems.isEmpty()) {
+            StringBuilder message = new StringBuilder("Low stock on: ");
+            for (int i = 0; i < lowStockItems.size(); i++) {
+                FoodItem item = lowStockItems.get(i);
+                message.append(item.getFoodName())
+                       .append(" (")
+                       .append(item.getQuantityDisplay())
+                       .append(")");
+                if (i < lowStockItems.size() - 1) {
+                    message.append(", ");
+                }
+            }
+            
+            Notification notification = new Notification(
+                owner.getId(),
+                "Items Running Low",
+                message.toString()
+            );
+            owner.addNotification(notification);
+        }
+    }
+    
+    // Get all items
+    public List<FoodItem> getAllItems() {
         return new ArrayList<>(inventory);
     }
-
-    // Find first item by name
-    public FoodItem findByName(String name) {
+    
+    // Get items expiring within N days
+    public List<FoodItem> getExpiringWithinDays(int days) {
+        List<FoodItem> expiringItems = new ArrayList<>();
+        LocalDate limitDate = LocalDate.now().plusDays(days);
+        
         for (FoodItem item : inventory) {
-            if (item.getFoodName().equalsIgnoreCase(name)) {
+            if (!item.isExpired() && item.getExpireDate().isBefore(limitDate.plusDays(1))) {
+                expiringItems.add(item);
+            }
+        }
+        
+        Collections.sort(expiringItems);
+        return expiringItems;
+    }
+    
+    // Get expired items
+    public List<FoodItem> getExpiredItems() {
+        List<FoodItem> expiredItems = new ArrayList<>();
+        
+        for (FoodItem item : inventory) {
+            if (item.isExpired()) {
+                expiredItems.add(item);
+            }
+        }
+        return expiredItems;
+    }
+    
+    // Get items by category
+    public List<FoodItem> getItemsByCategory(String category) {
+        List<FoodItem> categoryItems = new ArrayList<>();
+        
+        for (FoodItem item : inventory) {
+            if (item.getCategory().equalsIgnoreCase(category)) {
+                categoryItems.add(item);
+            }
+        }
+        return categoryItems;
+    }
+    
+    // Find item by name
+    public FoodItem findByName(String foodName) {
+        for (FoodItem item : inventory) {
+            if (item.getFoodName().equalsIgnoreCase(foodName)) {
                 return item;
             }
         }
         return null;
     }
-
-
+    
+    // Dashboard statistics
+    public int getTotalItemCount() {
+        return inventory.size();
+    }
+    
+    public int getExpiringItemCount() {
+        int count = 0;
+        for (FoodItem item : inventory) {
+            if (item.isExpiringSoon()) {
+                count++;
+            }
+        }
+        return count;
+    }
+    
+    public int getExpiredItemCount() {
+        int count = 0;
+        for (FoodItem item : inventory) {
+            if (item.isExpired()) {
+                count++;
+            }
+        }
+        return count;
+    }
+    
+    public int getLowStockCount() {
+        int count = 0;
+        for (FoodItem item : inventory) {
+            if (isRunningLow(item)) {
+                count++;
+            }
+        }
+        return count;
+    }
+    
+    // Shopping list management
+    public void addToShoppingList(String item) {
+        if (item != null && !item.isEmpty()) {
+            shoppingList.add(item);
+        }
+    }
+    
+    public void removeFromShoppingList(String item) {
+        shoppingList.remove(item);
+    }
+    
+    public Set<String> getShoppingList() {
+        return new HashSet<>(shoppingList);
+    }
+    
+    public void clearShoppingList() {
+        shoppingList.clear();
+    }
+    
+    public int getShoppingListCount() {
+        return shoppingList.size();
+    }
+    
+    // Clear expired items
+    public int clearExpiredItems() {
+        int count = 0;
+        Iterator<FoodItem> it = inventory.iterator();
+        
+        while (it.hasNext()) {
+            FoodItem item = it.next();
+            if (item.isExpired()) {
+                it.remove();
+                count++;
+                // Add expired item to shopping list (optional)
+                addToShoppingList(item.getFoodName());
+            }
+        }
+        return count;
+    }
+    
+    // Private helper methods
+    private void sortByExpireDate() {
+        Collections.sort(inventory);
+    }
+    
+    private void checkForExpiringItems() {
+        List<FoodItem> expiringSoon = getExpiringWithinDays(3);
+        
+        if (!expiringSoon.isEmpty()) {
+            StringBuilder itemsList = new StringBuilder();
+            for (int i = 0; i < expiringSoon.size(); i++) {
+                itemsList.append(expiringSoon.get(i).getFoodName());
+                if (i < expiringSoon.size() - 1) {
+                    itemsList.append(", ");
+                }
+            }
+            
+            Notification notification = new Notification(
+                owner.getId(),
+                "Items Expiring Soon!",
+                "These items expire within 3 days: " + itemsList.toString()
+            );
+            
+            owner.addNotification(notification);
+        }
+    }
+    
     @Override
     public Iterator<FoodItem> iterator() {
         return inventory.iterator();
