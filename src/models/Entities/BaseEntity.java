@@ -1,14 +1,14 @@
 package models.Entities;
-import java.time.Instant;
 
-public class BaseEntity {
-	    private final int id;
-	  
-
-	    protected BaseEntity(int id) {
-	        this.id = id;
-	    }
-
-	    public int getId() { return id; }
-	    
+public abstract class BaseEntity {
+    private static int counter = 1000;  // Start from 1000 to look more realistic
+    private final int id;
+    
+    protected BaseEntity() {
+        this.id = counter++;
+    }
+    
+    public int getId() { 
+        return id; 
+    }
 }
