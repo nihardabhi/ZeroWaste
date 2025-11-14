@@ -1,29 +1,35 @@
 package models.Entities;
-import java.time.Instant;
+import java.time.LocalDateTime;
 
-public class Notification extends BaseEntity{
-	  private String userId;//name
-	    private String title;
-	    private String message;
-	    private Instant createdDate = Instant.now();
-
-	    public Notification(int id, String userId, String title, String message) {
-	        super(id);
-	        this.userId = userId;
-	        this.title = title;
-	        this.message = message;
-	    }
-
-	    public String getUserId() { return userId; }
-	    public void setUserId(String userId) { this.userId = userId; }
-
-	    public String getTitle() { return title; }
-	    public void setTitle(String title) { this.title = title; }
-
-	    public String getMessage() { return message; }
-	    public void setMessage(String message) { this.message = message; }
-
-	    public Instant getCreatedDate() { return createdDate; }
-	    public void setCreatedDate(Instant createdDate) { this.createdDate = createdDate; }
-
+public class Notification extends BaseEntity {
+    private int userId;
+    private String title;
+    private String message;
+    private LocalDateTime createdAt;
+    private boolean isRead;
+    
+    public Notification(int userId, String title, String message) {
+        super();
+        this.userId = userId;
+        this.title = title;
+        this.message = message;
+        this.createdAt = LocalDateTime.now();
+        this.isRead = false;
+    }
+    
+    public void markAsRead() {
+        this.isRead = true;
+    }
+    
+    // Getters and Setters
+    public int getUserId() { return userId; }
+    public String getTitle() { return title; }
+    public String getMessage() { return message; }
+    public LocalDateTime getCreatedAt() { return createdAt; }
+    public boolean isRead() { return isRead; }
+    
+    @Override
+    public String toString() {
+        return "[" + (isRead ? "READ" : "UNREAD") + "] " + title + ": " + message;
+    }
 }
