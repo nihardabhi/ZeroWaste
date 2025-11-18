@@ -1,33 +1,112 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<?import javafx.scene.control.Button?>
-<?import javafx.scene.control.ButtonBar?>
-<?import javafx.scene.control.SplitPane?>
-<?import javafx.scene.layout.AnchorPane?>
-<?import javafx.scene.layout.BorderPane?>
-<?import javafx.scene.layout.VBox?>
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.text.Font?>
 
-<BorderPane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="400.0" prefWidth="600.0" xmlns="http://javafx.com/javafx/25" xmlns:fx="http://javafx.com/fxml/1">
+<BorderPane xmlns="http://javafx.com/javafx/21" 
+            xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="controller.DashboardController">
+   <left>
+      <VBox spacing="5.0" style="-fx-background-color: #f0f0f0;" 
+            minWidth="150.0" prefWidth="180.0" maxWidth="200.0">
+         <children>
+            <Label text="ZeroWaste" alignment="CENTER" maxWidth="Infinity">
+               <font>
+                  <Font name="System Bold" size="16.0" />
+               </font>
+               <padding>
+                  <Insets bottom="10.0" top="10.0" />
+               </padding>
+            </Label>
+            
+            <Separator />
+            
+            <Button fx:id="dashboardBtn" text="Dashboard" maxWidth="Infinity" />
+            <Button fx:id="inventoryBtn" text="Inventory" maxWidth="Infinity" />
+            <Button fx:id="recipeBtn" text="Recipe Recommender" maxWidth="Infinity" wrapText="true" />
+            <Button fx:id="preferencesBtn" text="User Preferences" maxWidth="Infinity" wrapText="true" />
+            
+            <Region VBox.vgrow="ALWAYS" />
+            
+            <Separator />
+            <Button fx:id="logoutBtn" text="Logout" maxWidth="Infinity" />
+         </children>
+         <padding>
+            <Insets bottom="10.0" left="10.0" right="10.0" top="10.0" />
+         </padding>
+      </VBox>
+   </left>
+   
    <center>
-      <SplitPane dividerPositions="0.3" prefHeight="160.0" prefWidth="200.0" BorderPane.alignment="CENTER">
-        <items>
-            <VBox prefHeight="358.0" prefWidth="110.0" spacing="10.0">
-               <children>
-                  <Button mnemonicParsing="false" text="Dashboard" />
-                  <Button layoutX="10.0" layoutY="10.0" mnemonicParsing="false" text="Inventory" />
-                  <Button layoutX="10.0" layoutY="62.0" mnemonicParsing="false" text="Recipe Recommender" />
-                  <Button mnemonicParsing="false" text="User Preferences" />
-               </children>
-            </VBox>
-          <AnchorPane minHeight="0.0" minWidth="0.0" prefHeight="160.0" prefWidth="100.0" />
-        </items>
-      </SplitPane>
+      <ScrollPane fitToWidth="true" fitToHeight="true">
+         <content>
+            <StackPane fx:id="contentArea">
+               <VBox spacing="15.0" fillWidth="true">
+                  <Label text="Dashboard" textFill="#333333">
+                     <font>
+                        <Font name="System Bold" size="20.0" />
+                     </font>
+                  </Label>
+                  
+                  <GridPane hgap="10.0" vgap="10.0">
+                     <columnConstraints>
+                        <ColumnConstraints hgrow="SOMETIMES" percentWidth="50" />
+                        <ColumnConstraints hgrow="SOMETIMES" percentWidth="50" />
+                     </columnConstraints>
+                     
+                     <!-- Row 1 -->
+                     <VBox style="-fx-background-color: #e0e0e0; -fx-padding: 10;" 
+                           GridPane.columnIndex="0" GridPane.rowIndex="0">
+                        <Label text="Total Food Items" />
+                        <Label fx:id="totalItems" text="0">
+                           <font><Font name="System Bold" size="24.0" /></font>
+                        </Label>
+                     </VBox>
+                     
+                     <VBox style="-fx-background-color: #ffe0b2; -fx-padding: 10;" 
+                           GridPane.columnIndex="1" GridPane.rowIndex="0">
+                        <Label text="Near Expiry (3 days)" wrapText="true" />
+                        <Label fx:id="nearExpiry" text="0">
+                           <font><Font name="System Bold" size="24.0" /></font>
+                        </Label>
+                     </VBox>
+                     
+                     <!-- Row 2 -->
+                     <VBox style="-fx-background-color: #ffcdd2; -fx-padding: 10;" 
+                           GridPane.columnIndex="0" GridPane.rowIndex="1">
+                        <Label text="Expired Items" />
+                        <Label fx:id="expiredItems" text="0">
+                           <font><Font name="System Bold" size="24.0" /></font>
+                        </Label>
+                     </VBox>
+                     
+                     <VBox style="-fx-background-color: #fff9c4; -fx-padding: 10;" 
+                           GridPane.columnIndex="1" GridPane.rowIndex="1">
+                        <Label text="Today's Expiring" />
+                        <Label fx:id="todayExpiring" text="0">
+                           <font><Font name="System Bold" size="24.0" /></font>
+                        </Label>
+                     </VBox>
+                     
+                     <!-- Row 3 -->
+                     <VBox style="-fx-background-color: #c5e1a5; -fx-padding: 10;" 
+                           GridPane.columnIndex="0" GridPane.rowIndex="2" 
+                           GridPane.columnSpan="2">
+                        <Label text="Low Stock Items" />
+                        <Label fx:id="lowStock" text="0">
+                           <font><Font name="System Bold" size="24.0" /></font>
+                        </Label>
+                     </VBox>
+                  </GridPane>
+                  
+                  <padding>
+                     <Insets bottom="20.0" left="20.0" right="20.0" top="20.0" />
+                  </padding>
+               </VBox>
+            </StackPane>
+         </content>
+      </ScrollPane>
    </center>
-   <bottom>
-      <ButtonBar prefHeight="40.0" prefWidth="200.0" BorderPane.alignment="CENTER">
-        <buttons>
-          <Button mnemonicParsing="false" text="Logout" />
-        </buttons>
-      </ButtonBar>
-   </bottom>
 </BorderPane>

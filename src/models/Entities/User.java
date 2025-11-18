@@ -15,6 +15,7 @@ public class User extends BaseEntity {
     private final HashSet<String> allergies = new HashSet<>();
     private int maxCalories = 3000;
     private int minCalories = 1200;
+    private boolean profileCompleted = false;
     
     // Relationships
     private Pantry pantry;
@@ -50,6 +51,15 @@ public class User extends BaseEntity {
         if (cuisine != null && !cuisine.isEmpty()) {
             cuisines.add(cuisine);
         }
+    }
+    
+    // Add these methods
+    public boolean isProfileCompleted() {
+        return profileCompleted;
+    }
+
+    public void setProfileCompleted(boolean profileCompleted) {
+        this.profileCompleted = profileCompleted;
     }
     
     public void removeCuisine(String cuisine) { 
