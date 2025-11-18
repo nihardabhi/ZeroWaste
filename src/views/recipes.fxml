@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.text.Font?>
+
+<BorderPane xmlns="http://javafx.com/javafx/21" 
+            xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="controller.RecipeController">
+   <top>
+      <VBox spacing="10.0" style="-fx-background-color: #f8f9fa; -fx-padding: 15;">
+         <children>
+            <!-- Title -->
+            <Label text="🍳 Recipe Recommendations">
+               <font>
+                  <Font name="System Bold" size="22.0" />
+               </font>
+            </Label>
+            
+            <!-- Description -->
+            <Label text="Personalized recipes based on your pantry items and preferences" 
+                   style="-fx-text-fill: #666; -fx-font-size: 12px;" />
+            
+            <!-- Controls -->
+            <HBox spacing="15.0" alignment="CENTER_LEFT">
+               <children>
+                  <CheckBox fx:id="useExpiringCheckBox" 
+                           text="Prioritize expiring items (next 3 days)" 
+                           selected="true"
+                           style="-fx-font-weight: bold; -fx-text-fill: #ff5722;" />
+                  
+                  <Region HBox.hgrow="ALWAYS" />
+                  
+                  <Button fx:id="searchRecipesBtn" 
+                         text="🔄 Refresh Recipes"
+                         style="-fx-background-color: #4CAF50; -fx-text-fill: white; -fx-font-weight: bold;" />
+                  
+                  <ProgressIndicator fx:id="loadingIndicator" 
+                                    visible="false" 
+                                    maxWidth="30.0" 
+                                    maxHeight="30.0" />
+               </children>
+            </HBox>
+            
+            <!-- User preferences display -->
+            <HBox spacing="10.0" fx:id="preferencesDisplay">
+               <children>
+                  <Label text="Active Filters:" style="-fx-font-weight: bold; -fx-font-size: 11px;" />
+                  <Label fx:id="activeFiltersLabel" 
+                        style="-fx-font-size: 11px; -fx-text-fill: #666;"
+                        wrapText="true" />
+               </children>
+            </HBox>
+         </children>
+      </VBox>
+   </top>
+   
+   <center>
+      <ScrollPane fitToWidth="true" fitToHeight="true" 
+                  style="-fx-background-color: #f5f5f5;">
+         <content>
+            <VBox fx:id="recipeContainer" 
+                  spacing="15.0" 
+                  fillWidth="true"
+                  style="-fx-background-color: #f5f5f5;">
+               <padding>
+                  <Insets bottom="15.0" left="15.0" right="15.0" top="15.0" />
+               </padding>
+            </VBox>
+         </content>
+      </ScrollPane>
+   </center>
+</BorderPane>
