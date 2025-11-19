@@ -17,9 +17,10 @@
                   <Font name="System Bold" size="16.0" />
                </font>
                <padding>
-                  <Insets bottom="10.0" top="10.0" />
+                  <Insets bottom="5.0" top="10.0" />
                </padding>
             </Label>
+            
             
             <Separator />
             
@@ -44,9 +45,17 @@
          <content>
             <StackPane fx:id="contentArea">
                <VBox spacing="15.0" fillWidth="true">
-                  <Label text="Dashboard" textFill="#333333">
+                  <!-- Add personalized greeting in main content -->
+                  <HBox alignment="CENTER_LEFT" spacing="10.0">
+                     <Label fx:id="greetingLabel" text="Good Morning" 
+                            style="-fx-font-size: 24px; -fx-font-weight: bold; -fx-text-fill: #2c3e50;" />
+                     <Label fx:id="userGreetingLabel" text="User!" 
+                            style="-fx-font-size: 24px; -fx-text-fill: #4CAF50;" />
+                  </HBox>
+                  
+                  <Label text="Dashboard Overview" textFill="#333333">
                      <font>
-                        <Font name="System Bold" size="20.0" />
+                        <Font name="System Bold" size="16.0" />
                      </font>
                   </Label>
                   

@@ -6,6 +6,7 @@ import javafx.scene.control.*;
 import javafx.stage.Stage;
 import models.Entities.User;
 import java.net.URL;
+import java.util.HashSet;
 import java.util.Optional;
 import java.util.ResourceBundle;
 
@@ -107,6 +108,26 @@ public class PreferencesController extends BaseController implements Initializab
         maxCaloriesField.setText(String.valueOf(user.getMaxCalories()));
     }
     
+    private void clearAllUserPreferences(User user) {
+        // Clear all diets
+        HashSet<String> dietsToRemove = new HashSet<>(user.getDiets());
+        for (String diet : dietsToRemove) {
+            user.removeDiet(diet);
+        }
+        
+        // Clear all allergies
+        HashSet<String> allergiesToRemove = new HashSet<>(user.getAllergies());
+        for (String allergy : allergiesToRemove) {
+            user.removeAllergy(allergy);
+        }
+        
+        // Clear all cuisines
+        HashSet<String> cuisinesToRemove = new HashSet<>(user.getCuisines());
+        for (String cuisine : cuisinesToRemove) {
+            user.removeCuisine(cuisine);
+        }
+    }
+    
     private void savePreferences() {
         User user = getCurrentUser();
         if (user == null) return;
@@ -136,8 +157,10 @@ public class PreferencesController extends BaseController implements Initializab
         }
         
         try {
-            // Clear and save dietary requirements
-            user.getDiets().clear();
+            // IMPORTANT: Clear ALL existing preferences first
+            clearAllUserPreferences(user);
+            
+            // Now add the new dietary requirements
             String dietsText = dietaryRequirementsArea.getText().trim();
             if (!dietsText.isEmpty()) {
                 String[] diets = dietsText.split(",");
@@ -149,8 +172,7 @@ public class PreferencesController extends BaseController implements Initializab
                 }
             }
             
-            // Clear and save allergies
-            user.getAllergies().clear();
+            // Add new allergies
             String allergiesText = allergiesArea.getText().trim();
             if (!allergiesText.isEmpty()) {
                 String[] allergies = allergiesText.split(",");
@@ -162,8 +184,7 @@ public class PreferencesController extends BaseController implements Initializab
                 }
             }
             
-            // Clear and save cuisine types
-            user.getCuisines().clear();
+            // Add new cuisine types
             String cuisinesText = cuisineTypesArea.getText().trim();
             if (!cuisinesText.isEmpty()) {
                 String[] cuisines = cuisinesText.split(",");
@@ -207,30 +228,35 @@ public class PreferencesController extends BaseController implements Initializab
             // Mark profile as completed
             user.setProfileCompleted(true);
             
-            // Build detailed success message with CURRENT VALUES
-            StringBuilder summary = new StringBuilder("✅ Preferences Updated Successfully!\n");
+            // Build success message with ONLY CURRENT VALUES (not appended)
+            StringBuilder summary = new StringBuilder("Preferences Updated Successfully!\n");
             summary.append("━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n");
-            summary.append("📋 Current Preferences:\n\n");
+            summary.append("Your Current Preferences:\n\n");
             
-            if (!user.getDiets().isEmpty()) {
-                summary.append("🥗 Diet: ").append(String.join(", ", user.getDiets())).append("\n\n");
+            // Get fresh copies of the sets to ensure we show current data
+            HashSet<String> currentDiets = user.getDiets();
+            HashSet<String> currentAllergies = user.getAllergies();
+            HashSet<String> currentCuisines = user.getCuisines();
+            
+            if (!currentDiets.isEmpty()) {
+                summary.append("Diet: ").append(String.join(", ", currentDiets)).append("\n\n");
             } else {
-                summary.append("🥗 Diet: None specified\n\n");
+                summary.append("Diet: None specified\n\n");
             }
             
-            if (!user.getAllergies().isEmpty()) {
-                summary.append("⚠️ Allergies: ").append(String.join(", ", user.getAllergies())).append("\n\n");
+            if (!currentAllergies.isEmpty()) {
+                summary.append("Allergies: ").append(String.join(", ", currentAllergies)).append("\n\n");
             } else {
-                summary.append("⚠️ Allergies: None specified\n\n");
+                summary.append("Allergies: None specified\n\n");
             }
             
-            if (!user.getCuisines().isEmpty()) {
-                summary.append("🍽️ Cuisines: ").append(String.join(", ", user.getCuisines())).append("\n\n");
+            if (!currentCuisines.isEmpty()) {
+                summary.append("Cuisines: ").append(String.join(", ", currentCuisines)).append("\n\n");
             } else {
-                summary.append("🍽️ Cuisines: All cuisines\n\n");
+                summary.append("Cuisines: All cuisines\n\n");
             }
             
-            summary.append("🔥 Calorie Range: ").append(minCal).append(" - ").append(maxCal).append(" calories\n");
+            summary.append("Calorie Range: ").append(minCal).append(" - ").append(maxCal).append(" calories per serving");
             
             // Create custom alert with detailed information
             Alert successAlert = new Alert(Alert.AlertType.INFORMATION);
@@ -266,13 +292,14 @@ public class PreferencesController extends BaseController implements Initializab
         if (confirm.showAndWait().orElse(ButtonType.CANCEL) == ButtonType.OK) {
             User user = getCurrentUser();
             if (user != null) {
-                user.getDiets().clear();
-                user.getAllergies().clear();
-                user.getCuisines().clear();
+                // Properly clear all preferences
+                clearAllUserPreferences(user);
+                
+                // Set default calorie values
                 user.setMinCalories(50);
                 user.setMaxCalories(5000);
                 
-                // Reload the form
+                // Clear and reload the form
                 dietaryRequirementsArea.clear();
                 allergiesArea.clear();
                 cuisineTypesArea.clear();

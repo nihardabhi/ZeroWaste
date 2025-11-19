@@ -40,6 +40,24 @@ public class RecipeController extends BaseController implements Initializable {
         
         if (useExpiringCheckBox != null) {
             useExpiringCheckBox.setSelected(true);
+            
+            // Add listener to automatically refresh when checkbox is toggled
+            useExpiringCheckBox.setOnAction(e -> {
+                String message = useExpiringCheckBox.isSelected() ? 
+                    "🔍 Searching recipes using expiring items only..." : 
+                    "🔍 Searching recipes using all inventory items...";
+                
+                // Show status message
+                Platform.runLater(() -> {
+                    if (recipeContainer != null && recipeContainer.getChildren().size() > 0) {
+                        Label statusLabel = new Label(message);
+                        statusLabel.setStyle("-fx-font-weight: bold; -fx-text-fill: #2196F3;");
+                        recipeContainer.getChildren().add(0, statusLabel);
+                    }
+                });
+                
+                searchRecipes();
+            });
         }
         
         checkForEmptyPantry();
@@ -91,8 +109,14 @@ public class RecipeController extends BaseController implements Initializable {
         recipeContainer.getChildren().clear();
         displayActiveFilters();
         
-        Label searchingLabel = new Label("🔍 Searching Spoonacular for personalized recipes...");
+        // Show search status based on checkbox
+        String searchStatus = useExpiringCheckBox.isSelected() ? 
+            "🔍 Searching for recipes using items expiring within 3 days..." :
+            "🔍 Searching for recipes using all items in your pantry...";
+        
+        Label searchingLabel = new Label(searchStatus);
         searchingLabel.setFont(new Font(14));
+        searchingLabel.setStyle("-fx-text-fill: #2196F3;");
         recipeContainer.getChildren().add(searchingLabel);
         
         new Thread(() -> {
@@ -115,8 +139,16 @@ public class RecipeController extends BaseController implements Initializable {
                     errorBox.setPadding(new Insets(20));
                     errorBox.setStyle("-fx-background-color: #ffebee; -fx-border-radius: 5;");
                     
-                    Label errorLabel = new Label("❌ Error: " + e.getMessage());
+                    Label errorLabel = new Label("❌ " + e.getMessage());
                     errorLabel.setStyle("-fx-text-fill: red; -fx-font-weight: bold;");
+                    errorLabel.setWrapText(true);
+                    
+                    // If error is about no expiring items, suggest unchecking the box
+                    if (e.getMessage().contains("No items expiring")) {
+                        Label suggestionLabel = new Label("💡 Tip: Uncheck 'Prioritize expiring items' to search with all your inventory.");
+                        suggestionLabel.setStyle("-fx-text-fill: #666;");
+                        errorBox.getChildren().add(suggestionLabel);
+                    }
                     
                     Button retryBtn = new Button("🔄 Retry Search");
                     retryBtn.setStyle("-fx-background-color: #4CAF50; -fx-text-fill: white;");
@@ -134,6 +166,19 @@ public class RecipeController extends BaseController implements Initializable {
     private void displayActiveFilters() {
         User user = getCurrentUser();
         StringBuilder filters = new StringBuilder();
+        
+        // Show what items are being used
+        if (useExpiringCheckBox != null && useExpiringCheckBox.isSelected()) {
+            List<FoodItem> expiringItems = user.getPantry().getExpiringWithinDays(3);
+            filters.append("🥘 Using: ");
+            if (expiringItems.isEmpty()) {
+                filters.append("No expiring items | ");
+            } else {
+                filters.append(expiringItems.size()).append(" expiring item(s) | ");
+            }
+        } else {
+            filters.append("🥘 Using: All ").append(user.getPantry().getTotalItemCount()).append(" pantry items | ");
+        }
         
         if (!user.getCuisines().isEmpty()) {
             filters.append("🍽️ Cuisines: ").append(String.join(", ", user.getCuisines())).append(" | ");
@@ -161,32 +206,38 @@ public class RecipeController extends BaseController implements Initializable {
         StringBuilder urlBuilder = new StringBuilder(API_URL);
         urlBuilder.append("?apiKey=").append(API_KEY);
         
-        // Get items for search
+        // Get items for search based on checkbox state
         List<FoodItem> items;
         if (useExpiringCheckBox != null && useExpiringCheckBox.isSelected()) {
+            // CHECKBOX CHECKED: Only use items expiring within 3 days
             items = user.getPantry().getExpiringWithinDays(3);
+            
             if (items.isEmpty()) {
-                items = user.getPantry().getAllItems();
+                // No expiring items - inform user instead of using all items
+                throw new Exception("No items expiring within 3 days found. Uncheck 'Prioritize expiring items' to search with all inventory.");
             }
+            
+            System.out.println("Using " + items.size() + " expiring items for recipe search");
         } else {
+            // CHECKBOX UNCHECKED: Use ALL items in pantry
             items = user.getPantry().getAllItems();
+            System.out.println("Using ALL " + items.size() + " items from pantry for recipe search");
         }
         
-        // Use includeIngredients for OR logic instead of query for AND logic
+        // Build ingredients list for API
         if (!items.isEmpty()) {
             StringBuilder ingredientsBuilder = new StringBuilder();
             Set<String> uniqueIngredients = new HashSet<>();
             
-            // Add up to 5 unique ingredients
+            // Add up to 10 unique ingredients (increased from 5 for better results)
             for (FoodItem item : items) {
                 String ingredient = item.getFoodName().toLowerCase().trim();
-                if (uniqueIngredients.add(ingredient) && uniqueIngredients.size() <= 5) {
+                if (uniqueIngredients.add(ingredient)) {
                     if (ingredientsBuilder.length() > 0) {
                         ingredientsBuilder.append(",");
                     }
                     ingredientsBuilder.append(ingredient);
                 }
-                if (uniqueIngredients.size() >= 5) break;
             }
             
             String ingredients = URLEncoder.encode(ingredientsBuilder.toString(), "UTF-8");
@@ -196,13 +247,10 @@ public class RecipeController extends BaseController implements Initializable {
         }
         
         // Add cuisine preference (only if not too restrictive)
-        if (!user.getCuisines().isEmpty()) {
+        if (!user.getCuisines().isEmpty() && items.size() > 2) {
             String cuisines = String.join(",", user.getCuisines())
                 .toLowerCase().replace(" ", "-");
-            // Only add cuisine filter if we have many ingredients
-            if (items.size() > 3) {
-                urlBuilder.append("&cuisine=").append(URLEncoder.encode(cuisines, "UTF-8"));
-            }
+            urlBuilder.append("&cuisine=").append(URLEncoder.encode(cuisines, "UTF-8"));
         }
         
         // Add dietary preferences
@@ -229,15 +277,13 @@ public class RecipeController extends BaseController implements Initializable {
         }
         
         // Adjust calorie range (these are PER SERVING, not total)
-        // Most recipes are 200-800 calories per serving
         int userMinCal = user.getMinCalories();
         int userMaxCal = user.getMaxCalories();
         
         // Only add calorie filter if reasonable
         if (userMinCal < 800 && userMaxCal > userMinCal) {
-            // Map user's expected meal calories to per-serving calories
-            int minCal = Math.max(50, userMinCal / 4); // Assume 4 servings average
-            int maxCal = Math.min(1500, userMaxCal / 2); // Assume 2 servings minimum
+            int minCal = Math.max(50, userMinCal / 4);
+            int maxCal = Math.min(1500, userMaxCal / 2);
             
             urlBuilder.append("&minCalories=").append(minCal);
             urlBuilder.append("&maxCalories=").append(maxCal);
@@ -248,7 +294,7 @@ public class RecipeController extends BaseController implements Initializable {
         urlBuilder.append("&addRecipeNutrition=true");
         urlBuilder.append("&fillIngredients=true");
         urlBuilder.append("&number=10");
-        urlBuilder.append("&sort=min-missing-ingredients"); // Prioritize recipes with available ingredients
+        urlBuilder.append("&sort=min-missing-ingredients");
         
         System.out.println("Spoonacular API URL: " + urlBuilder.toString());
         
@@ -306,28 +352,20 @@ public class RecipeController extends BaseController implements Initializable {
         StringBuilder urlBuilder = new StringBuilder(API_URL);
         urlBuilder.append("?apiKey=").append(API_KEY);
         
-        // Simpler search with just one main ingredient
+        // Simpler search with fewer ingredients
         if (!items.isEmpty()) {
-            String mainIngredient = items.get(0).getFoodName().toLowerCase().trim();
-            urlBuilder.append("&query=").append(URLEncoder.encode(mainIngredient, "UTF-8"));
-            System.out.println("Fallback search with: " + mainIngredient);
-        } else {
-            // If no items, search by cuisine or diet preference
-            if (!user.getCuisines().isEmpty()) {
-                String cuisine = user.getCuisines().iterator().next().toLowerCase();
-                urlBuilder.append("&cuisine=").append(URLEncoder.encode(cuisine, "UTF-8"));
-            } else if (!user.getDiets().isEmpty()) {
-                String diet = mapDietToSpoonacular(user.getDiets().iterator().next());
-                if (!diet.isEmpty()) {
-                    urlBuilder.append("&diet=").append(URLEncoder.encode(diet, "UTF-8"));
-                }
-            } else {
-                // Last resort: popular recipes
-                urlBuilder.append("&sort=popularity");
+            // Use only first 3 ingredients for fallback
+            StringBuilder ingredientsBuilder = new StringBuilder();
+            for (int i = 0; i < Math.min(3, items.size()); i++) {
+                if (i > 0) ingredientsBuilder.append(",");
+                ingredientsBuilder.append(items.get(i).getFoodName().toLowerCase().trim());
             }
+            urlBuilder.append("&includeIngredients=").append(URLEncoder.encode(ingredientsBuilder.toString(), "UTF-8"));
+            System.out.println("Fallback search with: " + ingredientsBuilder.toString());
         }
         
-        // Keep basic preferences but remove restrictive filters
+        // Remove restrictive filters for fallback
+        // Only keep allergy restrictions for safety
         if (!user.getAllergies().isEmpty()) {
             String mainAllergy = mapAllergyToSpoonacular(user.getAllergies().iterator().next());
             if (!mainAllergy.isEmpty()) {
@@ -351,7 +389,7 @@ public class RecipeController extends BaseController implements Initializable {
         int responseCode = conn.getResponseCode();
         
         if (responseCode != HttpURLConnection.HTTP_OK) {
-            throw new Exception("Fallback search also failed");
+            throw new Exception("No recipes found. Try adjusting your preferences or adding more items to your pantry.");
         }
         
         BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream()));
@@ -415,12 +453,16 @@ public class RecipeController extends BaseController implements Initializable {
                 return;
             }
             
-            // Header
-            Label headerLabel = new Label("🍳 Found " + recipes.size() + " Delicious Recipes");
+            // Header with checkbox state info
+            String headerText = useExpiringCheckBox.isSelected() ? 
+                "🍳 Found " + recipes.size() + " Recipes Using Expiring Items" :
+                "🍳 Found " + recipes.size() + " Recipes Using All Inventory";
+            
+            Label headerLabel = new Label(headerText);
             headerLabel.setFont(new Font("System Bold", 18));
             recipeContainer.getChildren().add(headerLabel);
             
-            // Expiring items notice
+            // Show which items are being used
             if (useExpiringCheckBox != null && useExpiringCheckBox.isSelected()) {
                 List<FoodItem> expiringItems = getCurrentUser().getPantry().getExpiringWithinDays(3);
                 if (!expiringItems.isEmpty()) {
@@ -428,20 +470,34 @@ public class RecipeController extends BaseController implements Initializable {
                     expiringBox.setStyle("-fx-background-color: #ffebee; -fx-padding: 10; -fx-border-radius: 5;");
                     
                     Label iconLabel = new Label("⚠️");
-                    Label textLabel = new Label("Prioritizing recipes using expiring items: ");
+                    Label textLabel = new Label("Using expiring items: ");
                     
                     StringBuilder expText = new StringBuilder();
-                    for (int i = 0; i < Math.min(expiringItems.size(), 3); i++) {
+                    for (int i = 0; i < Math.min(expiringItems.size(), 5); i++) {
                         if (i > 0) expText.append(", ");
                         FoodItem item = expiringItems.get(i);
                         expText.append(item.getFoodName()).append(" (")
                                .append(item.getDaysUntilExpiration()).append(" days)");
+                    }
+                    if (expiringItems.size() > 5) {
+                        expText.append(" and ").append(expiringItems.size() - 5).append(" more");
                     }
                     textLabel.setText(textLabel.getText() + expText.toString());
                     
                     expiringBox.getChildren().addAll(iconLabel, textLabel);
                     recipeContainer.getChildren().add(expiringBox);
                 }
+            } else {
+                // Show total items being used
+                HBox totalBox = new HBox(5);
+                totalBox.setStyle("-fx-background-color: #e8f5e9; -fx-padding: 10; -fx-border-radius: 5;");
+                
+                Label iconLabel = new Label("✅");
+                int totalItems = getCurrentUser().getPantry().getTotalItemCount();
+                Label textLabel = new Label("Using all " + totalItems + " items from your pantry");
+                
+                totalBox.getChildren().addAll(iconLabel, textLabel);
+                recipeContainer.getChildren().add(totalBox);
             }
             
             recipeContainer.getChildren().add(new Separator());
@@ -466,34 +522,34 @@ public class RecipeController extends BaseController implements Initializable {
         Label noRecipesLabel = new Label("No recipes found!");
         noRecipesLabel.setFont(new Font("System Bold", 16));
         
-        Label suggestionLabel = new Label(
+        String suggestions = useExpiringCheckBox.isSelected() ?
+            "Try:\n" +
+            "• Unchecking 'Prioritize expiring items' to use all inventory\n" +
+            "• Adding more items that expire soon\n" +
+            "• Adjusting your dietary preferences" :
             "Try:\n" +
             "• Adding more items to your pantry\n" +
             "• Removing some dietary restrictions\n" +
-            "• Adjusting your calorie preferences\n" +
-            "• Unchecking 'Use expiring items only'"
-        );
+            "• Adjusting your calorie preferences";
+        
+        Label suggestionLabel = new Label(suggestions);
         suggestionLabel.setStyle("-fx-font-size: 12px;");
         
         Button retryBtn = new Button("🔄 Search Again");
         retryBtn.setStyle("-fx-background-color: #4CAF50; -fx-text-fill: white;");
         retryBtn.setOnAction(e -> searchRecipes());
         
-        Button clearFiltersBtn = new Button("🗑️ Clear All Filters");
-        clearFiltersBtn.setStyle("-fx-background-color: #ff9800; -fx-text-fill: white;");
-        clearFiltersBtn.setOnAction(e -> {
-            User user = getCurrentUser();
-            if (user != null) {
-                // Temporarily clear filters for this search
-                user.getCuisines().clear();
-                user.getDiets().clear();
-                user.getAllergies().clear();
-                searchRecipes();
-            }
+        // Toggle checkbox button
+        Button toggleBtn = new Button(useExpiringCheckBox.isSelected() ? 
+            "📦 Use All Items" : "⚠️ Use Only Expiring");
+        toggleBtn.setStyle("-fx-background-color: #2196F3; -fx-text-fill: white;");
+        toggleBtn.setOnAction(e -> {
+            useExpiringCheckBox.setSelected(!useExpiringCheckBox.isSelected());
+            searchRecipes();
         });
         
         HBox buttonBox = new HBox(10);
-        buttonBox.getChildren().addAll(retryBtn, clearFiltersBtn);
+        buttonBox.getChildren().addAll(retryBtn, toggleBtn);
         
         noRecipesBox.getChildren().addAll(noRecipesLabel, suggestionLabel, buttonBox);
         recipeContainer.getChildren().add(noRecipesBox);
@@ -572,7 +628,6 @@ public class RecipeController extends BaseController implements Initializable {
                 
                 // Extract nutrition data if present
                 if (recipeBlock.contains("\"nutrition\"")) {
-                    // Look for calories in nutrition block
                     Pattern nutritionPattern = Pattern.compile("\"nutrition\"\\s*:\\s*\\{[^}]*\"nutrients\"\\s*:\\s*\\[([^\\]]+)\\]");
                     Matcher nutritionMatcher = nutritionPattern.matcher(recipeBlock);
                     if (nutritionMatcher.find()) {
@@ -755,23 +810,12 @@ public class RecipeController extends BaseController implements Initializable {
             metaBox.getChildren().add(servingsLabel);
         }
         
-        // Health score
-        String healthScore = recipe.get("healthScore");
-        if (healthScore != null) {
-            int score = (int)Double.parseDouble(healthScore);
-            String healthEmoji = score > 70 ? "💚" : score > 40 ? "💛" : "🧡";
-            Label healthLabel = new Label(healthEmoji + " Health Score: " + score + "/100");
-            healthLabel.setStyle("-fx-font-size: 12px; -fx-font-weight: bold;");
-            metaBox.getChildren().add(healthLabel);
-        }
-        
         // Calories
         String calories = recipe.get("calories");
         if (calories != null) {
             Label calLabel = new Label("🔥 " + calories + " cal/serving");
             User user = getCurrentUser();
             int cal = Integer.parseInt(calories);
-            // Adjust comparison for per-serving calories
             if (cal >= user.getMinCalories()/4 && cal <= user.getMaxCalories()) {
                 calLabel.setStyle("-fx-text-fill: #4caf50; -fx-font-weight: bold; -fx-font-size: 12px;");
             } else {
