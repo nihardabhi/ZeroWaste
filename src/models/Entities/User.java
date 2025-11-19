@@ -19,7 +19,6 @@ public class User extends BaseEntity {
     
     // Relationships
     private Pantry pantry;
-    private final List<Notification> notifications = new ArrayList<>();
     
     // Constructor for signup (no profile yet)
     public User(String email, String password, String userName) {
@@ -86,21 +85,6 @@ public class User extends BaseEntity {
         allergies.remove(allergy);
     }
     
-    // Notification management
-    public void addNotification(Notification notification) {
-        notifications.add(notification);
-    }
-    
-    public void clearNotifications() {
-        notifications.clear();
-    }
-    
-    public int getUnreadNotificationCount() {
-        return (int) notifications.stream()
-            .filter(n -> !n.isRead())
-            .count();
-    }
-    
     // Display methods
     public String getFullName() {
         if (hasCompletedProfile()) {
@@ -110,9 +94,6 @@ public class User extends BaseEntity {
     }
     
     public String getDisplayName() {
-        if (hasCompletedProfile()) {
-            return firstName;
-        }
         return userName;
     }
     
@@ -151,7 +132,6 @@ public class User extends BaseEntity {
     }
     
     public Pantry getPantry() { return pantry; }
-    public List<Notification> getNotifications() { return new ArrayList<>(notifications); }
     
     @Override
     public String toString() {

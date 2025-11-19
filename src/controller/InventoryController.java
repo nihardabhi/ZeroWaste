@@ -130,7 +130,7 @@ public class InventoryController extends BaseController implements Initializable
                             // Expires in 3 days - Orange background (DANGER)
                             setStyle(baseStyle + "-fx-background-color: #ffa726;");
                             getStyleClass().add("expiring-soon-row");
-                        } else if (daysUntilExpiry <= 7) {
+                        } else if (daysUntilExpiry <= 5) {
                             // Expires within a week - Yellow background (WARNING)
                             setStyle(baseStyle + "-fx-background-color: #ffee58;");
                             getStyleClass().add("expiring-week-row");
@@ -204,7 +204,7 @@ public class InventoryController extends BaseController implements Initializable
             categoryCombo.setStyle("-fx-font-size: 12px;");
         }
         
-        // Setup date picker with default value (NO COLORING)
+        // Setup date picker with default value
         if (expiryDatePicker != null) {
             expiryDatePicker.setValue(LocalDate.now().plusDays(7));
         }
@@ -309,13 +309,13 @@ public class InventoryController extends BaseController implements Initializable
         
         // Show expiry warning if applicable
         if (newItem.isExpired()) {
-            showWarningAlert("Warning: This item is already expired!");
+            showWarningAlert("⚠️ Warning: This item is already expired!");
         } else if (newItem.getDaysUntilExpiration() == 0) {
-            showWarningAlert("⚠Warning: This item expires today!");
+            showWarningAlert("⚠️ Warning: This item expires today!");
         } else if (newItem.isExpiringSoon()) {
-            showWarningAlert("Note: This item expires in " + newItem.getDaysUntilExpiration() + " days!");
+            showWarningAlert("📅 Note: This item expires in " + newItem.getDaysUntilExpiration() + " days!");
         } else {
-            showSuccessAlert("Item added successfully!");
+            showSuccessAlert("✅ Item added successfully!");
         }
     }
     
@@ -371,7 +371,7 @@ public class InventoryController extends BaseController implements Initializable
             getCurrentUser().getPantry().removeFoodItem(selectedItem.getFoodName());
             loadInventoryData();
             clearForm();
-            showSuccessAlert("Item removed successfully!");
+            showSuccessAlert("✅ Item removed successfully!");
         }
     }
     
@@ -411,7 +411,7 @@ public class InventoryController extends BaseController implements Initializable
         if (expiryDatePicker.getValue().isBefore(LocalDate.now())) {
             Alert confirm = new Alert(Alert.AlertType.CONFIRMATION);
             confirm.setTitle("Past Expiry Date");
-            confirm.setHeaderText("Item Already Expired");
+            confirm.setHeaderText("⚠️ Item Already Expired");
             confirm.setContentText("The expiry date is in the past. Do you still want to add this item?");
             return confirm.showAndWait().orElse(ButtonType.CANCEL) == ButtonType.OK;
         }
@@ -462,27 +462,8 @@ public class InventoryController extends BaseController implements Initializable
         inventoryTable.setItems(itemsList);
         inventoryTable.refresh();
         
-        // Update the dashboard stats if needed
-        pantry.updateShoppingListForLowStock();
         
-        // Show warning if there are expired items
-        long expiredCount = itemsList.stream().filter(FoodItem::isExpired).count();
-        long expiringSoonCount = itemsList.stream()
-            .filter(item -> !item.isExpired() && item.isExpiringSoon())
-            .count();
-        
-        if (expiredCount > 0) {
-            showWarningAlert("You have " + expiredCount + " expired item(s) in your pantry!");
-        } else if (expiringSoonCount > 0) {
-            showInfoAlert(" You have " + expiringSoonCount + " item(s) expiring soon.");
-        }
-    }
-    
-    private void showInfoAlert(String message) {
-        Alert alert = new Alert(Alert.AlertType.INFORMATION);
-        alert.setTitle("Information");
-        alert.setHeaderText(null);
-        alert.setContentText(message);
-        alert.showAndWait();
+        // NO POPUPS HERE - The table color coding shows the status clearly
+        // Users can see expired items in red, expiring soon in orange/yellow
     }
 }

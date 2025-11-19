@@ -21,7 +21,6 @@ public class Pantry implements Iterable<FoodItem> {
     public void addFoodItem(FoodItem item) {
         inventory.add(item);
         sortByExpireDate();
-        checkForExpiringItems();
         // Remove from shopping list if we just bought it
         removeFromShoppingList(item.getFoodName());
     }
@@ -35,43 +34,6 @@ public class Pantry implements Iterable<FoodItem> {
                 addToShoppingList(removed.getFoodName());
                 return true;
             }
-        }
-        return false;
-    }
-    
-    // Use/consume some quantity of food
-    public boolean useFoodItem(String foodName, double quantity) {
-        FoodItem item = findByName(foodName);
-        
-        if (item != null) {
-            item.useQuantity(quantity);
-            
-            // Check if running low or out of stock
-            if (item.isOutOfStock()) {
-                inventory.remove(item);
-                addToShoppingList(foodName);
-                
-                // Notify user item is finished
-                Notification notification = new Notification(
-                    owner.getId(),
-                    "Out of Stock!",
-                    foodName + " is finished. Added to shopping list."
-                );
-                owner.addNotification(notification);
-                
-            } else if (isRunningLow(item)) {
-                // Item is running low but not finished
-                addToShoppingList(foodName);
-                
-                // Notify user item is running low
-                Notification notification = new Notification(
-                    owner.getId(),
-                    "Running Low!",
-                    foodName + " is running low. Added to shopping list."
-                );
-                owner.addNotification(notification);
-            }
-            return true;
         }
         return false;
     }
@@ -95,38 +57,6 @@ public class Pantry implements Iterable<FoodItem> {
             }
         }
         return lowStock;
-    }
-    
-    // Check all items and update shopping list
-    public void updateShoppingListForLowStock() {
-        for (FoodItem item : inventory) {
-            if (isRunningLow(item)) {
-                addToShoppingList(item.getFoodName());
-            }
-        }
-        
-        // Send notification if there are low stock items
-        List<FoodItem> lowStockItems = getLowStockItems();
-        if (!lowStockItems.isEmpty()) {
-            StringBuilder message = new StringBuilder("Low stock on: ");
-            for (int i = 0; i < lowStockItems.size(); i++) {
-                FoodItem item = lowStockItems.get(i);
-                message.append(item.getFoodName())
-                       .append(" (")
-                       .append(item.getQuantityDisplay())
-                       .append(")");
-                if (i < lowStockItems.size() - 1) {
-                    message.append(", ");
-                }
-            }
-            
-            Notification notification = new Notification(
-                owner.getId(),
-                "Items Running Low",
-                message.toString()
-            );
-            owner.addNotification(notification);
-        }
     }
     
     // Get all items
@@ -262,29 +192,7 @@ public class Pantry implements Iterable<FoodItem> {
     private void sortByExpireDate() {
         Collections.sort(inventory);
     }
-    
-    private void checkForExpiringItems() {
-        List<FoodItem> expiringSoon = getExpiringWithinDays(3);
         
-        if (!expiringSoon.isEmpty()) {
-            StringBuilder itemsList = new StringBuilder();
-            for (int i = 0; i < expiringSoon.size(); i++) {
-                itemsList.append(expiringSoon.get(i).getFoodName());
-                if (i < expiringSoon.size() - 1) {
-                    itemsList.append(", ");
-                }
-            }
-            
-            Notification notification = new Notification(
-                owner.getId(),
-                "Items Expiring Soon!",
-                "These items expire within 3 days: " + itemsList.toString()
-            );
-            
-            owner.addNotification(notification);
-        }
-    }
-    
     @Override
     public Iterator<FoodItem> iterator() {
         return inventory.iterator();
