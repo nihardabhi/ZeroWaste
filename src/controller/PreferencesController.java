@@ -44,39 +44,68 @@ public class PreferencesController extends BaseController implements Initializab
             resetBtn.setOnAction(e -> resetPreferences());
         }
         
+        // Add real-time validation listeners
+        addInputValidationListeners();
+        
         // Add tooltips for guidance
         addTooltips();
         
         loadUserPreferences();
     }
     
+    private void addInputValidationListeners() {
+        // Add listener for calorie fields to allow only numbers
+        if (minCaloriesField != null) {
+            minCaloriesField.textProperty().addListener((observable, oldValue, newValue) -> {
+                if (!newValue.matches("\\d*")) {
+                    minCaloriesField.setText(newValue.replaceAll("[^\\d]", ""));
+                    showWarningAlert("Please enter only numbers for minimum calories");
+                }
+            });
+        }
+        
+        if (maxCaloriesField != null) {
+            maxCaloriesField.textProperty().addListener((observable, oldValue, newValue) -> {
+                if (!newValue.matches("\\d*")) {
+                    maxCaloriesField.setText(newValue.replaceAll("[^\\d]", ""));
+                    showWarningAlert("Please enter only numbers for maximum calories");
+                }
+            });
+        }
+    }
+    
     private void addTooltips() {
         if (dietaryRequirementsArea != null) {
             Tooltip dietTooltip = new Tooltip("Enter dietary requirements separated by commas.\n" +
-                "Examples: Vegetarian, Vegan, Keto, Paleo, Gluten-Free");
+                "Examples: Vegetarian, Vegan, Keto, Paleo, Gluten-Free\n" +
+                "Note: Numbers are not allowed");
             Tooltip.install(dietaryRequirementsArea, dietTooltip);
         }
         
         if (allergiesArea != null) {
             Tooltip allergyTooltip = new Tooltip("Enter allergies separated by commas.\n" +
                 "These ingredients will be excluded from recipes.\n" +
-                "Examples: Nuts, Dairy, Eggs, Soy, Gluten, Shellfish");
+                "Examples: Nuts, Dairy, Eggs, Soy, Gluten, Shellfish\n" +
+                "Note: Numbers are not allowed");
             Tooltip.install(allergiesArea, allergyTooltip);
         }
         
         if (cuisineTypesArea != null) {
             Tooltip cuisineTooltip = new Tooltip("Enter preferred cuisines separated by commas.\n" +
-                "Examples: Italian, Mexican, Chinese, Indian, Japanese, Thai");
+                "Examples: Italian, Mexican, Chinese, Indian, Japanese, Thai\n" +
+                "Note: Numbers are not allowed");
             Tooltip.install(cuisineTypesArea, cuisineTooltip);
         }
         
         if (minCaloriesField != null) {
-            Tooltip minCalTooltip = new Tooltip("Minimum calories per serving for recipes");
+            Tooltip minCalTooltip = new Tooltip("Minimum calories per serving for recipes\n" +
+                "Only numbers allowed");
             Tooltip.install(minCaloriesField, minCalTooltip);
         }
         
         if (maxCaloriesField != null) {
-            Tooltip maxCalTooltip = new Tooltip("Maximum calories per serving for recipes");
+            Tooltip maxCalTooltip = new Tooltip("Maximum calories per serving for recipes\n" +
+                "Only numbers allowed");
             Tooltip.install(maxCaloriesField, maxCalTooltip);
         }
     }
@@ -128,17 +157,95 @@ public class PreferencesController extends BaseController implements Initializab
         }
     }
     
+    // Helper method to check if a string contains only letters and allowed characters
+    private boolean isValidTextInput(String input) {
+        // Allow letters, spaces, hyphens, and apostrophes (for names like "Gluten-Free" or "McDonald's")
+        return input.matches("[a-zA-Z\\s\\-']+");
+    }
+    
+    // Helper method to validate all items in a comma-separated list
+    private boolean validateTextAreaInput(String input, String fieldName) {
+        if (input == null || input.trim().isEmpty()) {
+            return true; // Empty is valid (optional fields)
+        }
+        
+        String[] items = input.split(",");
+        for (String item : items) {
+            String trimmedItem = item.trim();
+            if (!trimmedItem.isEmpty() && !isValidTextInput(trimmedItem)) {
+                showErrorAlert("Invalid input in " + fieldName + ": '" + trimmedItem + "'\n\n" +
+                             "Please enter only text without numbers.\n" +
+                             "Valid examples: Vegetarian, Gluten-Free, Italian");
+                return false;
+            }
+        }
+        return true;
+    }
+    
+    // Helper method to validate calorie fields
+    private boolean validateCalorieInput(String input, String fieldName) {
+        if (input == null || input.trim().isEmpty()) {
+            showErrorAlert(fieldName + " cannot be empty.\n" +
+                         "Please enter a valid number.");
+            return false;
+        }
+        
+        try {
+            int value = Integer.parseInt(input.trim());
+            if (value <= 0) {
+                showErrorAlert(fieldName + " must be a positive number.");
+                return false;
+            }
+            return true;
+        } catch (NumberFormatException e) {
+            showErrorAlert("Invalid input for " + fieldName + ".\n\n" +
+                         "Please enter only numbers (no letters or special characters).\n" +
+                         "Example: 500");
+            return false;
+        }
+    }
+    
     private void savePreferences() {
         User user = getCurrentUser();
         if (user == null) return;
         
+        // Get input values
+        String dietsText = dietaryRequirementsArea.getText().trim();
+        String allergiesText = allergiesArea.getText().trim();
+        String cuisinesText = cuisineTypesArea.getText().trim();
+        String minCalText = minCaloriesField.getText().trim();
+        String maxCalText = maxCaloriesField.getText().trim();
+        
+        // Validate text areas (no numbers allowed)
+        if (!validateTextAreaInput(dietsText, "Dietary Requirements")) {
+            dietaryRequirementsArea.requestFocus();
+            return;
+        }
+        
+        if (!validateTextAreaInput(allergiesText, "Allergies")) {
+            allergiesArea.requestFocus();
+            return;
+        }
+        
+        if (!validateTextAreaInput(cuisinesText, "Cuisine Types")) {
+            cuisineTypesArea.requestFocus();
+            return;
+        }
+        
+        // Validate calorie fields (only numbers allowed)
+        if (!validateCalorieInput(minCalText, "Minimum Calories")) {
+            minCaloriesField.requestFocus();
+            return;
+        }
+        
+        if (!validateCalorieInput(maxCalText, "Maximum Calories")) {
+            maxCaloriesField.requestFocus();
+            return;
+        }
+        
         // If first time setup, check if they're skipping
         if (isFirstTimeSetup) {
-            String diets = dietaryRequirementsArea.getText().trim();
-            String allergies = allergiesArea.getText().trim();
-            String cuisines = cuisineTypesArea.getText().trim();
-            
-            if (diets.isEmpty() && allergies.isEmpty() && cuisines.isEmpty()) {
+            if (dietsText.isEmpty() && allergiesText.isEmpty() && cuisinesText.isEmpty()) {
                 Alert confirm = new Alert(Alert.AlertType.CONFIRMATION);
                 confirm.setTitle("Skip Preferences?");
                 confirm.setHeaderText("No preferences entered");
@@ -157,56 +264,15 @@ public class PreferencesController extends BaseController implements Initializab
         }
         
         try {
-            // IMPORTANT: Clear ALL existing preferences first
-            clearAllUserPreferences(user);
+            // Parse and validate calorie values
+            int minCal = Integer.parseInt(minCalText);
+            int maxCal = Integer.parseInt(maxCalText);
             
-            // Now add the new dietary requirements
-            String dietsText = dietaryRequirementsArea.getText().trim();
-            if (!dietsText.isEmpty()) {
-                String[] diets = dietsText.split(",");
-                for (String diet : diets) {
-                    String trimmedDiet = diet.trim();
-                    if (!trimmedDiet.isEmpty()) {
-                        user.addDiet(trimmedDiet);
-                    }
-                }
-            }
-            
-            // Add new allergies
-            String allergiesText = allergiesArea.getText().trim();
-            if (!allergiesText.isEmpty()) {
-                String[] allergies = allergiesText.split(",");
-                for (String allergy : allergies) {
-                    String trimmedAllergy = allergy.trim();
-                    if (!trimmedAllergy.isEmpty()) {
-                        user.addAllergy(trimmedAllergy);
-                    }
-                }
-            }
-            
-            // Add new cuisine types
-            String cuisinesText = cuisineTypesArea.getText().trim();
-            if (!cuisinesText.isEmpty()) {
-                String[] cuisines = cuisinesText.split(",");
-                for (String cuisine : cuisines) {
-                    String trimmedCuisine = cuisine.trim();
-                    if (!trimmedCuisine.isEmpty()) {
-                        user.addCuisine(trimmedCuisine);
-                    }
-                }
-            }
-            
-            // Validate and save calorie preferences
-            int minCal = Integer.parseInt(minCaloriesField.getText().trim());
-            int maxCal = Integer.parseInt(maxCaloriesField.getText().trim());
-            
-            if (minCal <= 0 || maxCal <= 0) {
-                showErrorAlert("Calories must be positive numbers");
-                return;
-            }
-            
+            // Additional calorie validation
             if (minCal > maxCal) {
-                showErrorAlert("Minimum calories cannot exceed maximum calories");
+                showErrorAlert("Minimum calories cannot exceed maximum calories.\n\n" +
+                             "Please ensure minimum is less than or equal to maximum.");
+                minCaloriesField.requestFocus();
                 return;
             }
             
@@ -222,13 +288,50 @@ public class PreferencesController extends BaseController implements Initializab
                 maxCaloriesField.setText("5000");
             }
             
+            // IMPORTANT: Clear ALL existing preferences first
+            clearAllUserPreferences(user);
+            
+            // Now add the new dietary requirements
+            if (!dietsText.isEmpty()) {
+                String[] diets = dietsText.split(",");
+                for (String diet : diets) {
+                    String trimmedDiet = diet.trim();
+                    if (!trimmedDiet.isEmpty()) {
+                        user.addDiet(trimmedDiet);
+                    }
+                }
+            }
+            
+            // Add new allergies
+            if (!allergiesText.isEmpty()) {
+                String[] allergies = allergiesText.split(",");
+                for (String allergy : allergies) {
+                    String trimmedAllergy = allergy.trim();
+                    if (!trimmedAllergy.isEmpty()) {
+                        user.addAllergy(trimmedAllergy);
+                    }
+                }
+            }
+            
+            // Add new cuisine types
+            if (!cuisinesText.isEmpty()) {
+                String[] cuisines = cuisinesText.split(",");
+                for (String cuisine : cuisines) {
+                    String trimmedCuisine = cuisine.trim();
+                    if (!trimmedCuisine.isEmpty()) {
+                        user.addCuisine(trimmedCuisine);
+                    }
+                }
+            }
+            
+            // Save calorie preferences
             user.setMinCalories(minCal);
             user.setMaxCalories(maxCal);
             
             // Mark profile as completed
             user.setProfileCompleted(true);
             
-            // Build success message with ONLY CURRENT VALUES (not appended)
+            // Build success message with ONLY CURRENT VALUES
             StringBuilder summary = new StringBuilder("Preferences Updated Successfully!\n");
             summary.append("━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n");
             summary.append("Your Current Preferences:\n\n");
@@ -276,8 +379,6 @@ public class PreferencesController extends BaseController implements Initializab
                 navigateToDashboard();
             }
             
-        } catch (NumberFormatException e) {
-            showErrorAlert("Please enter valid numbers for calorie values");
         } catch (Exception e) {
             showErrorAlert("Error saving preferences: " + e.getMessage());
         }
