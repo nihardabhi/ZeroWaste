@@ -1,34 +1,54 @@
-How to Run ZeroWaste Application
-Requirements
+HOW TO RUN ZEROWASTE APPLICATION
+=================================
 
-Java 11 or higher
-JavaFX 11 or higher (download from https://gluonhq.com/products/javafx/)
-
-Quick Setup - IntelliJ IDEA
-
-Open Project in IntelliJ
-Add JavaFX Library
-
-File → Project Structure → Libraries
-Click + → Java
-Select your JavaFX lib folder (e.g., C:\javafx\lib)
-Select all .jar files → OK
+REQUIREMENTS
+------------
+- Java 11 or higher
+- JavaFX 11 or higher (download from https://gluonhq.com/products/javafx/)
+- JRE system should be >= 21 (version)
 
 
-Configure Run
+SETUP INSTRUCTIONS
+------------------
 
-Run → Edit Configurations → + → Application
+Step 1: Download JavaFX
+-----------------------
+Download JavaFX SDK from the link above and extract it to a location on your 
+computer (e.g., C:\javafx on Windows or /usr/local/javafx on Mac/Linux).
+
+
+Step 2: Configure Your Development Environment
+-----------------------------------------------
+Add the JavaFX library to your project:
+- Navigate to your project settings/structure
+- Add a new Java library
+- Browse to your JavaFX lib folder
+- Select all .jar files and add them to the project
+
+
+Step 3: Run Configuration
+-------------------------
+When running the application, you need to specify the JavaFX modules in the VM arguments:
+
 Main class: MainRunner
-VM options: --module-path "C:\javafx\lib" --add-modules javafx.controls,javafx.fxml
-(Change C:\javafx\lib to your JavaFX path)
 
-Troubleshooting
+VM arguments:
+--module-path "path/to/javafx/lib" --add-modules javafx.controls,javafx.fxml
 
-"JavaFX runtime components missing" → Check VM options path
-"Cannot find FXML" → Ensure views folder is in src/
-Recipe API limit → 150 requests per day
+Replace path/to/javafx/lib with your actual JavaFX library path, for example:
+- Windows: C:\javafx\lib
+- Mac/Linux: /usr/local/javafx/lib
 
-Notes
 
-Data resets when app closes (no database)
-Spoonacular API key included (150 daily requests)
+TROUBLESHOOTING
+---------------
+
+"JavaFX runtime components missing"
+- Verify that the module path in your VM arguments points to the correct JavaFX lib folder.
+
+"Cannot find FXML"
+- Ensure the views folder is located inside the src/ directory of your project.
+
+"Recipe API limit reached"
+- The included Spoonacular API key allows 150 requests per day. If you exceed this 
+  limit, the recipe features will be unavailable until the next day.
