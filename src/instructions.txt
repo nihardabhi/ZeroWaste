@@ -1,0 +1,34 @@
+How to Run ZeroWaste Application
+Requirements
+
+Java 11 or higher
+JavaFX 11 or higher (download from https://gluonhq.com/products/javafx/)
+
+Quick Setup - IntelliJ IDEA
+
+Open Project in IntelliJ
+Add JavaFX Library
+
+File → Project Structure → Libraries
+Click + → Java
+Select your JavaFX lib folder (e.g., C:\javafx\lib)
+Select all .jar files → OK
+
+
+Configure Run
+
+Run → Edit Configurations → + → Application
+Main class: MainRunner
+VM options: --module-path "C:\javafx\lib" --add-modules javafx.controls,javafx.fxml
+(Change C:\javafx\lib to your JavaFX path)
+
+Troubleshooting
+
+"JavaFX runtime components missing" → Check VM options path
+"Cannot find FXML" → Ensure views folder is in src/
+Recipe API limit → 150 requests per day
+
+Notes
+
+Data resets when app closes (no database)
+Spoonacular API key included (150 daily requests)
