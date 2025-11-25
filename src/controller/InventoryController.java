@@ -119,23 +119,18 @@ public class InventoryController extends BaseController implements Initializable
                         String baseStyle = "-fx-text-fill: black; -fx-font-weight: normal; ";
                         
                         if (item.isExpired()) {
-                            // Already expired - Dark red background
                             setStyle(baseStyle + "-fx-background-color: #ff5252;");
                             getStyleClass().add("expired-row");
                         } else if (daysUntilExpiry == 0) {
-                            // Expires today - Bright red/orange background
                             setStyle(baseStyle + "-fx-background-color: #ff6e40;");
                             getStyleClass().add("expiring-today-row");
                         } else if (daysUntilExpiry <= 3) {
-                            // Expires in 3 days - Orange background (DANGER)
                             setStyle(baseStyle + "-fx-background-color: #ffa726;");
                             getStyleClass().add("expiring-soon-row");
                         } else if (daysUntilExpiry <= 5) {
-                            // Expires within a week - Yellow background (WARNING)
                             setStyle(baseStyle + "-fx-background-color: #ffee58;");
                             getStyleClass().add("expiring-week-row");
                         } else {
-                            // Safe - Light green background
                             setStyle(baseStyle + "-fx-background-color: #c8e6c9;");
                             getStyleClass().add("safe-row");
                         }
@@ -143,12 +138,10 @@ public class InventoryController extends BaseController implements Initializable
                 }
             };
             
-            // Override selected style to maintain text color
             row.selectedProperty().addListener((obs, wasSelected, isNowSelected) -> {
                 if (isNowSelected && row.getItem() != null) {
                     String currentStyle = row.getStyle();
                     if (currentStyle != null && !currentStyle.isEmpty()) {
-                        // Add border to show selection while keeping background color
                         row.setStyle(currentStyle + " -fx-border-color: #1976d2; -fx-border-width: 2px;");
                     }
                 }
@@ -169,7 +162,6 @@ public class InventoryController extends BaseController implements Initializable
     }
     
     private void applyTableStyling() {
-        // Apply CSS to ensure text stays black
         inventoryTable.setStyle(
             "-fx-selection-bar: transparent;" +
             "-fx-selection-bar-text: black;" +
@@ -178,7 +170,6 @@ public class InventoryController extends BaseController implements Initializable
             "-fx-font-size: 13px;"
         );
         
-        // Style each column to ensure text stays black
         inventoryTable.getColumns().forEach(column -> {
             column.setStyle("-fx-text-fill: black; -fx-alignment: CENTER-LEFT;");
         });
@@ -204,9 +195,31 @@ public class InventoryController extends BaseController implements Initializable
             categoryCombo.setStyle("-fx-font-size: 12px;");
         }
         
-        // Setup date picker with default value
+        // Setup date picker with default value and disable past dates
         if (expiryDatePicker != null) {
             expiryDatePicker.setValue(LocalDate.now().plusDays(7));
+            
+            // Disable all past dates (yesterday and before)
+            expiryDatePicker.setDayCellFactory(picker -> new DateCell() {
+                @Override
+                public void updateItem(LocalDate date, boolean empty) {
+                    super.updateItem(date, empty);
+                    
+                    // Disable dates before today
+                    if (date.isBefore(LocalDate.now())) {
+                        setDisable(true);
+                        setStyle("-fx-background-color: #e0e0e0; -fx-text-fill: #999999;");
+                    }
+                }
+            });
+            
+            // Prevent manual entry of past dates
+            expiryDatePicker.valueProperty().addListener((obs, oldDate, newDate) -> {
+                if (newDate != null && newDate.isBefore(LocalDate.now())) {
+                    expiryDatePicker.setValue(LocalDate.now());
+                    showWarningAlert("Cannot select past dates. Date set to today.");
+                }
+            });
         }
         
         // Setup quantity field
@@ -308,9 +321,7 @@ public class InventoryController extends BaseController implements Initializable
         clearForm();
         
         // Show expiry warning if applicable
-        if (newItem.isExpired()) {
-            showWarningAlert("⚠️ Warning: This item is already expired!");
-        } else if (newItem.getDaysUntilExpiration() == 0) {
+        if (newItem.getDaysUntilExpiration() == 0) {
             showWarningAlert("⚠️ Warning: This item expires today!");
         } else if (newItem.isExpiringSoon()) {
             showWarningAlert("📅 Note: This item expires in " + newItem.getDaysUntilExpiration() + " days!");
@@ -407,15 +418,6 @@ public class InventoryController extends BaseController implements Initializable
             return false;
         }
         
-        // Warn about past expiry dates
-        if (expiryDatePicker.getValue().isBefore(LocalDate.now())) {
-            Alert confirm = new Alert(Alert.AlertType.CONFIRMATION);
-            confirm.setTitle("Past Expiry Date");
-            confirm.setHeaderText("⚠️ Item Already Expired");
-            confirm.setContentText("The expiry date is in the past. Do you still want to add this item?");
-            return confirm.showAndWait().orElse(ButtonType.CANCEL) == ButtonType.OK;
-        }
-        
         return true;
     }
     
@@ -461,9 +463,5 @@ public class InventoryController extends BaseController implements Initializable
         
         inventoryTable.setItems(itemsList);
         inventoryTable.refresh();
-        
-        
-        // NO POPUPS HERE - The table color coding shows the status clearly
-        // Users can see expired items in red, expiring soon in orange/yellow
     }
 }

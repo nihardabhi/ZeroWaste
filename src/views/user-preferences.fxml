@@ -8,8 +8,8 @@
 <BorderPane xmlns="http://javafx.com/javafx/21"
             xmlns:fx="http://javafx.com/fxml/1"
             fx:controller="controller.PreferencesController"
-            prefWidth="600.0"
-            prefHeight="500.0">
+            prefWidth="700.0"
+            prefHeight="650.0">
    <top>
       <VBox alignment="CENTER" spacing="5.0">
          <Text text="User Preferences" style="-fx-font-size: 24px; -fx-font-weight: bold;">
@@ -37,56 +37,63 @@
    <center>
       <ScrollPane fitToWidth="true" fitToHeight="true" style="-fx-background-color: transparent;">
          <content>
-            <VBox alignment="CENTER" minWidth="400.0">
-               <GridPane hgap="15.0" vgap="20.0" maxWidth="600.0">
-                  <columnConstraints>
-                     <ColumnConstraints hgrow="NEVER" minWidth="140.0" />
-                     <ColumnConstraints hgrow="ALWAYS" minWidth="250.0" />
-                  </columnConstraints>
-                  
-                  <!-- Dietary Requirements -->
-                  <Label text="🥗 Dietary Requirements:" GridPane.rowIndex="0" GridPane.columnIndex="0" 
-                         style="-fx-font-weight: bold; -fx-font-size: 13px;" 
-                         GridPane.valignment="TOP">
-                     <GridPane.margin>
+            <VBox alignment="CENTER" spacing="15.0" minWidth="400.0">
+               <padding>
+                  <Insets top="10.0" bottom="20.0" left="30.0" right="30.0" />
+               </padding>
+               
+               <!-- Dietary Requirements Section -->
+               <VBox spacing="8.0" style="-fx-background-color: #f8f9fa; -fx-background-radius: 8; -fx-border-color: #dee2e6; -fx-border-radius: 8;">
+                  <padding>
+                     <Insets top="12.0" bottom="12.0" left="15.0" right="15.0" />
+                  </padding>
+                  <Label text="🥗 Dietary Requirements" style="-fx-font-weight: bold; -fx-font-size: 14px;" />
+                  <Label text="Select diets you follow (filters recipe results)" style="-fx-font-size: 11px; -fx-text-fill: #666;" />
+                  <FlowPane fx:id="dietsFlowPane" hgap="12.0" vgap="8.0">
+                     <padding>
                         <Insets top="5.0" />
-                     </GridPane.margin>
-                  </Label>
-                  <TextArea fx:id="dietaryRequirementsArea" GridPane.rowIndex="0" GridPane.columnIndex="1"
-                           prefRowCount="3" wrapText="true"
-                           promptText="e.g., Vegetarian, Vegan, Keto, Paleo, Gluten-Free"
-                           style="-fx-font-size: 12px;" />
+                     </padding>
+                  </FlowPane>
+               </VBox>
 
-                  <!-- Allergies -->
-                  <Label text="⚠️ Allergies/Intolerances:" GridPane.rowIndex="1" GridPane.columnIndex="0"
-                         style="-fx-font-weight: bold; -fx-font-size: 13px;"
-                         GridPane.valignment="TOP">
-                     <GridPane.margin>
+               <!-- Intolerances Section -->
+               <VBox spacing="8.0" style="-fx-background-color: #fff8e1; -fx-background-radius: 8; -fx-border-color: #ffe082; -fx-border-radius: 8;">
+                  <padding>
+                     <Insets top="12.0" bottom="12.0" left="15.0" right="15.0" />
+                  </padding>
+                  <Label text="⚠️ Food Intolerances" style="-fx-font-weight: bold; -fx-font-size: 14px;" />
+                  <Label text="Select intolerances/allergies (these ingredients will be excluded)" style="-fx-font-size: 11px; -fx-text-fill: #666;" />
+                  <FlowPane fx:id="intolerancesFlowPane" hgap="12.0" vgap="8.0">
+                     <padding>
                         <Insets top="5.0" />
-                     </GridPane.margin>
-                  </Label>
-                  <TextArea fx:id="allergiesArea" GridPane.rowIndex="1" GridPane.columnIndex="1"
-                           prefRowCount="3" wrapText="true"
-                           promptText="e.g., Nuts, Dairy, Eggs, Soy, Shellfish"
-                           style="-fx-font-size: 12px;" />
+                     </padding>
+                  </FlowPane>
+               </VBox>
 
-                  <!-- Cuisine Types -->
-                  <Label text="🍽️ Cuisine Preferences:" GridPane.rowIndex="2" GridPane.columnIndex="0"
-                         style="-fx-font-weight: bold; -fx-font-size: 13px;"
-                         GridPane.valignment="TOP">
-                     <GridPane.margin>
+               <!-- Cuisine Preferences Section -->
+               <VBox spacing="8.0" style="-fx-background-color: #e8f5e9; -fx-background-radius: 8; -fx-border-color: #a5d6a7; -fx-border-radius: 8;">
+                  <padding>
+                     <Insets top="12.0" bottom="12.0" left="15.0" right="15.0" />
+                  </padding>
+                  <Label text="🍽️ Cuisine Preferences" style="-fx-font-weight: bold; -fx-font-size: 14px;" />
+                  <Label text="Select preferred cuisines (leave empty for all)" style="-fx-font-size: 11px; -fx-text-fill: #666;" />
+                  <FlowPane fx:id="cuisinesFlowPane" hgap="12.0" vgap="8.0">
+                     <padding>
                         <Insets top="5.0" />
-                     </GridPane.margin>
-                  </Label>
-                  <TextArea fx:id="cuisineTypesArea" GridPane.rowIndex="2" GridPane.columnIndex="1"
-                           prefRowCount="3" wrapText="true"
-                           promptText="e.g., Italian, Mexican, Chinese, Indian, Thai"
-                           style="-fx-font-size: 12px;" />
+                     </padding>
+                  </FlowPane>
+               </VBox>
 
-                  <!-- Calorie Range -->
-                  <Label text="🔥 Calorie Range:" GridPane.rowIndex="3" GridPane.columnIndex="0"
-                         style="-fx-font-weight: bold; -fx-font-size: 13px;" />
-                  <HBox spacing="10.0" alignment="CENTER_LEFT" GridPane.rowIndex="3" GridPane.columnIndex="1">
+               <!-- Calorie Range Section -->
+               <VBox spacing="8.0" style="-fx-background-color: #f8f9fa; -fx-background-radius: 8; -fx-border-color: #dee2e6; -fx-border-radius: 8;">
+                  <padding>
+                     <Insets top="12.0" bottom="12.0" left="15.0" right="15.0" />
+                  </padding>
+                  <Label text="🔥 Calorie Range (per serving)" style="-fx-font-weight: bold; -fx-font-size: 14px;" />
+                  <HBox spacing="10.0" alignment="CENTER_LEFT">
+                     <padding>
+                        <Insets top="5.0" />
+                     </padding>
                      <TextField fx:id="minCaloriesField" promptText="Min" prefWidth="80.0"
                                style="-fx-font-size: 12px;" />
                      <Label text="to" style="-fx-font-weight: bold;" />
@@ -94,21 +101,21 @@
                                style="-fx-font-size: 12px;" />
                      <Label text="calories per serving" style="-fx-font-size: 11px; -fx-text-fill: #666;" />
                   </HBox>
-
-                  <padding>
-                     <Insets top="20.0" bottom="20.0" left="20.0" right="20.0" />
-                  </padding>
-               </GridPane>
+               </VBox>
 
                <!-- Buttons -->
                <HBox spacing="15.0" alignment="CENTER">
-                  <Button fx:id="savePreferencesBtn" text="💾 Save Preferences"
-                         style="-fx-background-color: #4CAF50; -fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 14px;"
-                         prefWidth="160.0" prefHeight="35.0" />
                   <VBox.margin>
-                     <Insets top="20.0" bottom="20.0" />
+                     <Insets top="15.0" bottom="10.0" />
                   </VBox.margin>
+                  <Button fx:id="savePreferencesBtn" text="💾 Save Preferences"
+                         style="-fx-background-color: #4CAF50; -fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 14px; -fx-cursor: hand;"
+                         prefWidth="160.0" prefHeight="40.0" />
+                  <Button fx:id="resetBtn" text="🔄 Reset to Default"
+                         style="-fx-background-color: #ff9800; -fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 13px; -fx-cursor: hand;"
+                         prefWidth="150.0" prefHeight="40.0" />
                </HBox>
+               
             </VBox>
          </content>
          <padding>
